@@ -1,0 +1,51 @@
+name: CI Pipeline
+
+# Trigger this workflow on every push and pull request to the main branch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download NLTK stopwords
+        run: |
+          python -c "import nltk; nltk.download('stopwords')"
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test  # only run this job if the test job succeeds
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t spam-classifier-api:${{ github.sha }} .
+
+      - name: Confirm image built successfully
+        run: |
+          docker images | grep spam-classifier-api
