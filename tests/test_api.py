@@ -92,3 +92,18 @@ def test_predict_rejects_meaningless_text(client):
 def test_predict_handles_special_characters(client):
     response = client.post("/predict", json={"text": "Special chars: @#$%^&*() should not crash the API"})
     assert response.status_code == 200
+
+
+def test_metrics_endpoint_exists(client):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    data = response.json()
+    expected_fields = {"total_predictions", "spam_count", "ham_count", "spam_ratio", "average_latency_ms", "uptime_seconds"}
+    assert expected_fields.issubset(data.keys())
+
+
+def test_metrics_increment_after_prediction(client):
+    before = client.get("/metrics").json()["total_predictions"]
+    client.post("/predict", json={"text": "test message for metrics tracking"})
+    after = client.get("/metrics").json()["total_predictions"]
+    assert after == before + 1    

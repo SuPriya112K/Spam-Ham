@@ -6,6 +6,7 @@ FastAPI application serving the spam classifier.
 Endpoints:
     GET  /health   - health check (used by deployment platforms & monitoring)
     POST /predict  - takes text, returns spam/ham prediction + confidence
+    GET  /metrics  - basic operational stats (prediction counts, latency, uptime)
 
 Run locally with:
     uvicorn api:app --reload
@@ -14,6 +15,7 @@ Run locally with:
 import os
 import time
 import logging
+import datetime
 from contextlib import asynccontextmanager
 
 import joblib
@@ -23,8 +25,7 @@ from pydantic import BaseModel, Field
 from preprocessing import clean_text
 
 # ---- Logging setup ----
-# This is the foundation of our "monitoring" step later -
-# every prediction gets logged so we can analyze traffic patterns and model behavior over time.
+# Every prediction gets logged so we can analyze traffic patterns and model behavior over time.
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -35,6 +36,19 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "spam_class
 
 # Global variable to hold the loaded model (loaded once at startup, not per-request)
 model_pipeline = None
+
+# ---- Simple in-memory monitoring ----
+# In a real multi-server production system, you'd use something like Prometheus
+# instead of a plain Python dict (in-memory stats reset if the server restarts,
+# and don't work across multiple server instances). For a single-instance
+# resume project, this is a lightweight, honest way to demonstrate the concept.
+metrics_store = {
+    "total_predictions": 0,
+    "spam_count": 0,
+    "ham_count": 0,
+    "total_latency_ms": 0.0,
+    "start_time": datetime.datetime.utcnow()
+}
 
 
 @asynccontextmanager
@@ -86,6 +100,15 @@ class HealthResponse(BaseModel):
     model_loaded: bool
 
 
+class MetricsResponse(BaseModel):
+    total_predictions: int
+    spam_count: int
+    ham_count: int
+    spam_ratio: float
+    average_latency_ms: float
+    uptime_seconds: float
+
+
 # ---- Endpoints ----
 
 @app.get("/health", response_model=HealthResponse)
@@ -134,10 +157,46 @@ def predict(request: PredictionRequest):
         f"time_ms={processing_time_ms:.2f} | text_length={len(request.text)}"
     )
 
+    # Update monitoring stats
+    metrics_store["total_predictions"] += 1
+    metrics_store["total_latency_ms"] += processing_time_ms
+    if prediction == "Spam":
+        metrics_store["spam_count"] += 1
+    else:
+        metrics_store["ham_count"] += 1
+
     return PredictionResponse(
         label=prediction,
         confidence=max(spam_prob, ham_prob),
         spam_probability=spam_prob,
         ham_probability=ham_prob,
         processing_time_ms=round(processing_time_ms, 2)
+    )
+
+
+@app.get("/metrics", response_model=MetricsResponse)
+def get_metrics():
+    """
+    Exposes basic operational stats about this API instance.
+    In a real production deployment, a tool like Prometheus/Grafana would scrape
+    an endpoint like this continuously to build dashboards and alerts over time.
+    """
+    total = metrics_store["total_predictions"]
+
+    if total == 0:
+        avg_latency = 0.0
+        spam_ratio = 0.0
+    else:
+        avg_latency = metrics_store["total_latency_ms"] / total
+        spam_ratio = metrics_store["spam_count"] / total
+
+    uptime = (datetime.datetime.utcnow() - metrics_store["start_time"]).total_seconds()
+
+    return MetricsResponse(
+        total_predictions=total,
+        spam_count=metrics_store["spam_count"],
+        ham_count=metrics_store["ham_count"],
+        spam_ratio=round(spam_ratio, 4),
+        average_latency_ms=round(avg_latency, 2),
+        uptime_seconds=round(uptime, 1)
     )
