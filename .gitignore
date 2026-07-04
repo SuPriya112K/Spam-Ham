@@ -1,0 +1,32 @@
+# Virtual environment
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Data (don't commit large datasets to git)
+data/*.csv
+data/*.zip
+
+# Secrets
+kaggle.json
+.env
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# MLflow local tracking
+mlruns/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+mlflow.db
+src/mlflow.db
