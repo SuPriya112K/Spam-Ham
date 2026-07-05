@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Spam Checker for Gmail",
+  "version": "1.0",
+  "description": "Classifies the currently open Gmail email as Spam or Ham using a locally-running ML API.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ]
+}

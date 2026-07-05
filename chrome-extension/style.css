@@ -1,0 +1,43 @@
+.spam-checker-button {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    margin: 10px 0;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+}
+
+.spam-checker-button:hover {
+    background-color: #1558b0;
+}
+
+.spam-checker-button:disabled {
+    background-color: #9aa0a6;
+    cursor: not-allowed;
+}
+
+.spam-checker-banner {
+    display: block;
+    margin: 8px 0;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.spam-checker-banner.spam {
+    background-color: #fce8e6;
+    color: #c5221f;
+    border: 1px solid #c5221f;
+}
+
+.spam-checker-banner.ham {
+    background-color: #e6f4ea;
+    color: #137333;
+    border: 1px solid #137333;
+}
